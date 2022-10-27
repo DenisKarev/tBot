@@ -11,16 +11,9 @@ from telegram.ext import (
     MessageHandler,
     Filters,
     ConversationHandler,
+    CallbackQueryHandler,
+    CallbackContext
 )
-
-# Включим ведение журнала
-# logging.basicConfig(
-#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
-# )
-# logger = logging.getLogger(__name__)
-
-# # Определяем константы этапов разговора
-# GENDER, PHOTO, LOCATION, BIO = range(4)
 
 if __name__ == '__main__':
     # Создаем Updater и передаем ему токен вашего бота.
@@ -28,27 +21,23 @@ if __name__ == '__main__':
     # получаем диспетчера для регистрации обработчиков
     dispatcher = updater.dispatcher
 
-    # Определяем обработчик разговоров `ConversationHandler` 
-    # с состояниями GENDER, PHOTO, LOCATION и BIO
-    conv_handler = ConversationHandler( # здесь строится логика разговора
-        # точка входа в разговор
-        entry_points=[CommandHandler('start', start)],
-        # этапы разговора, каждый со своим списком обработчиков сообщений
-        states={
-            GENDER: [MessageHandler(Filters.regex('^(Boy|Girl|Other)$'), gender)],
-            PHOTO: [MessageHandler(Filters.photo, photo), CommandHandler('skip', skip_photo)],
-            LOCATION: [
-                MessageHandler(Filters.location, location),
-                CommandHandler('skip', skip_location),
-            ],
-            BIO: [MessageHandler(Filters.text & ~Filters.command, bio)],
-        },
-        # точка выхода из разговора
-        fallbacks=[CommandHandler('cancel', cancel)],
-    )
 
-    # Добавляем обработчик разговоров `conv_handler`
-    dispatcher.add_handler(conv_handler)
+    start_handler = CommandHandler('start', start)
+
+    ttt_handler = ConversationHandler(                          # Filters.text, ttt)
+        entry_points=[CommandHandler('ttt', ttt_start)],
+        states={
+            # START: [MessageHandler(Filters.text, ttt_playx)],
+            PLAYO: [CallbackQueryHandler(ttt_playo)],
+            PLAYX: [CallbackQueryHandler(ttt_playx)],            #  & ~Filters.command
+            OUT:   [CallbackQueryHandler(ttt_fin)]
+            # OUT:   [MessageHandler(Filters.all, ttt_fin)]       #  & ~Filters.command
+        },
+        fallbacks=[CommandHandler('cancel', cancel)]
+    )
+    # Добавляем обработчики
+    dispatcher.add_handler(start_handler)
+    dispatcher.add_handler(ttt_handler)
 
     # Запуск бота
     updater.start_polling()

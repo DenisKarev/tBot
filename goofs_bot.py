@@ -1,6 +1,13 @@
 import logging
+from tictac import TicTac #!
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import (
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -12,6 +19,7 @@ from telegram.ext import (
 # Включим ведение журнала
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    # filename='bot_logs.csv'
 )
 logger = logging.getLogger(__name__)
 
@@ -21,52 +29,9 @@ GENDER, PHOTO, LOCATION, BIO = range(4)
 # функция обратного вызова точки входа в разговор
 def start(update, _):
     # Список кнопок для ответа
-    reply_keyboard = [['Boy', 'Girl', 'Other']]
-    # Создаем простую клавиатуру для ответа
-    markup_key = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    # Начинаем разговор с вопроса
-    update.message.reply_text(
-        'Меня зовут профессор Бот. Я проведу с вами беседу. '
-        'Команда /cancel, чтобы прекратить разговор.\n\n'
-        'Ты мальчик или девочка?',
-        reply_markup=markup_key,)
-    # переходим к этапу `GENDER`, это значит, что ответ
-    # отправленного сообщения в виде кнопок будет список 
-    # обработчиков, определенных в виде значения ключа `GENDER`
-    return GENDER
-
-# Обрабатываем пол пользователя
-def gender(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # Пишем в журнал пол пользователя
-    logger.info("Пол %s: %s", user.first_name, update.message.text)
-    # Следующее сообщение с удалением клавиатуры `ReplyKeyboardRemove`
-    update.message.reply_text(
-        'Хорошо. Пришли мне свою фотографию, чтоб я знал как ты '
-        'выглядишь, или отправь /skip, если стесняешься.',
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    # переходим к этапу `PHOTO`
-    return PHOTO
-
-# Обрабатываем фотографию пользователя
-def photo(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # захватываем фото 
-    photo_file = update.message.photo[-1].get_file()
-    # скачиваем фото 
-    photo_file.download(f'{user.first_name}_photo.jpg')
-    # Пишем в журнал сведения о фото
-    logger.info("Фотография %s: %s", user.first_name, f'{user.first_name}_photo.jpg')
-    # Отвечаем на сообщение с фото
-    update.message.reply_text(
-        'Великолепно! А теперь пришли мне свое'
-        ' местоположение, или /skip если параноик..'
-    )
-    # переходим к этапу `LOCATION`
-    return LOCATION
+    # user = update.message.from_user.first_name
+    update.message.reply_text(f'Добро пожаловать {update.message.from_user.first_name}!\nК сожалению в данный момент бот умеет\
+ только играть в Крестики-Нолики для двоих игроков %))\nЗапуск командой /ttt')
 
 # Обрабатываем команду /skip для фото
 def skip_photo(update, _):
@@ -81,47 +46,6 @@ def skip_photo(update, _):
     )
     # переходим к этапу `LOCATION`
     return LOCATION
-
-# Обрабатываем местоположение пользователя
-def location(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # захватываем местоположение пользователя
-    user_location = update.message.location
-    # Пишем в журнал сведения о местоположении
-    logger.info(
-        "Местоположение %s: %f / %f", user.first_name, user_location.latitude, user_location.longitude)
-    # Отвечаем на сообщение с местоположением
-    update.message.reply_text(
-        'Может быть, я смогу как-нибудь навестить тебя!' 
-        ' Расскажи мне что-нибудь о себе...'
-    )
-    # переходим к этапу `BIO`
-    return BIO
-
-# Обрабатываем команду /skip для местоположения
-def skip_location(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # Пишем в журнал сведения о местоположении
-    logger.info("User %s did not send a location.", user.first_name)
-    # Отвечаем на сообщение с пропущенным местоположением
-    update.message.reply_text(
-        'Точно параноик! Ну ладно, тогда расскажи мне что-нибудь о себе...'
-    )
-    # переходим к этапу `BIO`
-    return BIO
-
-# Обрабатываем сообщение с рассказом/биографией пользователя
-def bio(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # Пишем в журнал биографию или рассказ пользователя
-    logger.info("Пользователь %s рассказал: %s", user.first_name, update.message.text)
-    # Отвечаем на то что пользователь рассказал.
-    update.message.reply_text('Спасибо! Надеюсь, когда-нибудь снова сможем поговорить.')
-    # Заканчиваем разговор.
-    return ConversationHandler.END
 
 # Обрабатываем команду /cancel если пользователь отменил разговор
 def cancel(update, _):
@@ -138,29 +62,87 @@ def cancel(update, _):
     # Заканчиваем разговор.
     return ConversationHandler.END
 
+PLAYX, PLAYO, OUT, NEXT, START = range(5)
+game = TicTac()
 
-# if __name__ == '__main__':
-#     # Создаем Updater и передаем ему токен вашего бота.
-#     updater = Updater(g_token)
-#     # получаем диспетчера для регистрации обработчиков
-#     dispatcher = updater.dispatcher
+def ttt_cancel(update, c):
+    return ConversationHandler.END
 
-#     # Определяем обработчик разговоров `ConversationHandler` 
-#     # с состояниями GENDER, PHOTO, LOCATION и BIO
-#     conv_handler = ConversationHandler( # здесь строится логика разговора
-#         # точка входа в разговор
-#         entry_points=[CommandHandler('start', start)],
-#         # этапы разговора, каждый со своим списком обработчиков сообщений
-#         states={
-#             GENDER: [MessageHandler(Filters.regex('^(Boy|Girl|Other)$'), gender)],
-#             PHOTO: [MessageHandler(Filters.photo, photo), CommandHandler('skip', skip_photo)],
-#             LOCATION: [
-#                 MessageHandler(Filters.location, location),
-#                 CommandHandler('skip', skip_location),
-#             ],
-#             BIO: [MessageHandler(Filters.text & ~Filters.command, bio)],
-#         },
-#         # точка выхода из разговора
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
+def ttt_start(update, c):
+    # print(c)
+    # print(update)
+    # global game
+    update.message.reply_text(game.rules())# 3x3 keyboard
+    reply_keyboard = reNewtttKeyboard()
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)                 # Создаем Inline клавиатуру для ответа
+    update.message.reply_text(game.pmove(), reply_markup=reply_markup)  # Пишем текущего игрока
+    return PLAYO
 
+def ttt_playx(update, c):
+    query = update.callback_query
+    query.answer()
+    pos = int(query.data)
+    # print(pos)
+    query.edit_message_text(text = game.pmove() + f"\nSelected option: {pos+1}")
+    if game.possible_moves[pos]:
+        game.possible_moves[pos] = 0
+        game.move(pos)
+        game.fd[pos] = game.player
+        if game.finished() or sum(game.possible_moves) == 0:
+            query.edit_message_text(text = "Игра завершена")
+            return OUT
+        else:
+            game.cplayer()
+            reply_keyboard = reNewtttKeyboard()
+            reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
+            query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+    else:
+        update.message.reply_text(game.fu)
+        return PLAYX
+    return PLAYO
+
+def ttt_playo(update, c):
+    query = update.callback_query
+    query.answer()
+    pos = int(query.data)
+    # print(pos)
+    query.edit_message_text(text = game.pmove() + f"\nSelected option: {pos+1}")
+    if game.possible_moves[pos]:
+        game.possible_moves[pos] = 0
+        game.move(pos)
+        game.fd[pos] = game.player
+        if game.finished() or sum(game.possible_moves) == 0:
+            query.edit_message_text(text = "Игра завершена")
+            return OUT
+        else:
+            game.cplayer()
+            reply_keyboard = reNewtttKeyboard() 
+            reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
+            query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+    else:
+        update.message.reply_text(game.fu)
+        return PLAYO
+    return PLAYX
+
+def ttt_fin(update, c):
+    # update.message.reply_text(game)
+    winner = game.finished()
+    print(winner)
+    if winner:
+        update.message.reply_text(game.win())
+    else:
+        update.message.reply_text(game.draw)
+    game.__init__()
+    return ConversationHandler.END
+
+def reNewtttKeyboard():
+    return [[
+            InlineKeyboardButton(game.fd[0], callback_data='0'),
+            InlineKeyboardButton(game.fd[1], callback_data='1'),
+            InlineKeyboardButton(game.fd[2], callback_data='2'),
+        ],[ InlineKeyboardButton(game.fd[3], callback_data='3'),
+            InlineKeyboardButton(game.fd[4], callback_data='4'),
+            InlineKeyboardButton(game.fd[5], callback_data='5'),
+        ],[ InlineKeyboardButton(game.fd[6], callback_data='6'),
+            InlineKeyboardButton(game.fd[7], callback_data='7'),
+            InlineKeyboardButton(game.fd[8], callback_data='8'),]]
