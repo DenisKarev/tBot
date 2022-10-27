@@ -28,8 +28,8 @@ GENDER, PHOTO, LOCATION, BIO = range(4)
 
 # функция обратного вызова точки входа в разговор
 def start(update, _):
-    user = update.message.from_user
-    logger.info("Пользователь %s стартанул.", user.first_name)
+    # user = update.message.from_user
+    logger.info("Пользователь %s стартанул.", update.message.from_user.first_name)
     # Список кнопок для ответа
     # user = update.message.from_user.first_name
     update.message.reply_text(f'Добро пожаловать {update.message.from_user.first_name}!\nК сожалению в данный момент бот умеет\
@@ -38,10 +38,11 @@ def start(update, _):
 
 # Обрабатываем команду /cancel если пользователь отменил разговор
 def cancel(update, _):
+    game.__init__()
     # определяем пользователя
-    user = update.message.from_user
+    # user = update.message.from_user
     # Пишем в журнал о том, что пользователь не разговорчивый
-    logger.info("Пользователь %s отменил игру.", user.first_name)
+    logger.info("Пользователь %s отменил игру.", update.message.from_user.first_name)
     # Отвечаем на отказ поговорить
     update.message.reply_text(
         'Мое дело предложить - Ваше отказаться', 
@@ -129,6 +130,7 @@ def ttt_fin(update, c):
         query.edit_message_text(game.draw)
         # update.message.reply_text(game.draw)
     game.__init__()
+    logger.info("Пользователь %s закончил.", query.message.from_user.first_name)
     return ConversationHandler.END
 
 def reNewtttKeyboard():
