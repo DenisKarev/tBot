@@ -28,51 +28,36 @@ GENDER, PHOTO, LOCATION, BIO = range(4)
 
 # функция обратного вызова точки входа в разговор
 def start(update, _):
+    user = update.message.from_user
+    logger.info("Пользователь %s стартанул.", user.first_name)
     # Список кнопок для ответа
     # user = update.message.from_user.first_name
     update.message.reply_text(f'Добро пожаловать {update.message.from_user.first_name}!\nК сожалению в данный момент бот умеет\
  только играть в Крестики-Нолики для двоих игроков %))\nЗапуск командой /ttt')
 
-# Обрабатываем команду /skip для фото
-def skip_photo(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # Пишем в журнал сведения о фото
-    logger.info("Пользователь %s не отправил фото.", user.first_name)
-    # Отвечаем на сообщение с пропущенной фотографией
-    update.message.reply_text(
-        'Держу пари, ты выглядишь великолепно! А теперь пришлите мне'
-        ' свое местоположение, или /skip если параноик.'
-    )
-    # переходим к этапу `LOCATION`
-    return LOCATION
 
 # Обрабатываем команду /cancel если пользователь отменил разговор
 def cancel(update, _):
     # определяем пользователя
     user = update.message.from_user
     # Пишем в журнал о том, что пользователь не разговорчивый
-    logger.info("Пользователь %s отменил разговор.", user.first_name)
+    logger.info("Пользователь %s отменил игру.", user.first_name)
     # Отвечаем на отказ поговорить
     update.message.reply_text(
-        'Мое дело предложить - Ваше отказаться'
-        ' Будет скучно - пиши.', 
+        'Мое дело предложить - Ваше отказаться', 
         reply_markup=ReplyKeyboardRemove()
     )
-    # Заканчиваем разговор.
     return ConversationHandler.END
 
-PLAYX, PLAYO, OUT, NEXT, START = range(5)
+PLAYO, PLAYX, OUT, START = range(4)
 game = TicTac()
 
 def ttt_cancel(update, c):
+    game.__init__()
     return ConversationHandler.END
 
 def ttt_start(update, c):
-    # print(c)
-    # print(update)
-    # global game
-    update.message.reply_text(game.rules())# 3x3 keyboard
+    update.message.reply_text(game.tttrules + '\nДля завершения игры /cancel в любой момент')# 3x3 keyboard
     reply_keyboard = reNewtttKeyboard()
     reply_markup = InlineKeyboardMarkup(reply_keyboard)                 # Создаем Inline клавиатуру для ответа
     update.message.reply_text(game.pmove(), reply_markup=reply_markup)  # Пишем текущего игрока
@@ -84,21 +69,24 @@ def ttt_playx(update, c):
     pos = int(query.data)
     # print(pos)
     query.edit_message_text(text = game.pmove() + f"\nSelected option: {pos+1}")
-    if game.possible_moves[pos]:
-        game.possible_moves[pos] = 0
-        game.move(pos)
-        game.fd[pos] = game.player
-        if game.finished() or sum(game.possible_moves) == 0:
-            query.edit_message_text(text = "Игра завершена")
-            return OUT
-        else:
-            game.cplayer()
-            reply_keyboard = reNewtttKeyboard()
-            reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
-            query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+    # if game.possible_moves[pos]:
+    game.possible_moves[pos] = 0
+    game.move(pos)
+    game.fd[pos] = game.player
+    if game.finished() or sum(game.possible_moves) == 0:
+        # query.edit_message_text(text = "Игра завершена")
+        reply_keyboard = [[InlineKeyboardButton('Игра завершена', callback_data='W')]]
+        reply_markup = InlineKeyboardMarkup(reply_keyboard)
+        query.edit_message_text("Игра завершена", reply_markup=reply_markup)
+        return OUT
     else:
-        update.message.reply_text(game.fu)
-        return PLAYX
+        game.cplayer()
+        reply_keyboard = reNewtttKeyboard()
+        reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
+        query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+    # else:
+    #     update.message.reply_text(game.fu)
+    #     return PLAYX
     return PLAYO
 
 def ttt_playo(update, c):
@@ -107,31 +95,39 @@ def ttt_playo(update, c):
     pos = int(query.data)
     # print(pos)
     query.edit_message_text(text = game.pmove() + f"\nSelected option: {pos+1}")
-    if game.possible_moves[pos]:
-        game.possible_moves[pos] = 0
-        game.move(pos)
-        game.fd[pos] = game.player
-        if game.finished() or sum(game.possible_moves) == 0:
-            query.edit_message_text(text = "Игра завершена")
-            return OUT
-        else:
-            game.cplayer()
-            reply_keyboard = reNewtttKeyboard() 
-            reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
-            query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+    # if game.possible_moves[pos]:
+    game.possible_moves[pos] = 0
+    game.move(pos)
+    game.fd[pos] = game.player
+    if game.finished() or sum(game.possible_moves) == 0:
+        query.edit_message_text(text = "Игра завершена")
+        reply_keyboard = [[InlineKeyboardButton('Игра завершена', callback_data='W')]]
+        reply_markup = InlineKeyboardMarkup(reply_keyboard)
+        query.edit_message_text("Игра завершена", reply_markup=reply_markup)
+        return OUT
     else:
-        update.message.reply_text(game.fu)
-        return PLAYO
+        game.cplayer()
+        reply_keyboard = reNewtttKeyboard() 
+        reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
+        query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+    # else:
+    #     update.message.reply_text(game.fu)
+    #     return PLAYO
     return PLAYX
 
 def ttt_fin(update, c):
+    reply_markup = ReplyKeyboardRemove()
+    query = update.callback_query
+    # query.answer()
     # update.message.reply_text(game)
     winner = game.finished()
-    print(winner)
+    # print(winner)
     if winner:
-        update.message.reply_text(game.win())
+        query.edit_message_text(game.win())
+        # update.message.reply_text(game.win())
     else:
-        update.message.reply_text(game.draw)
+        query.edit_message_text(game.draw)
+        # update.message.reply_text(game.draw)
     game.__init__()
     return ConversationHandler.END
 
@@ -146,3 +142,44 @@ def reNewtttKeyboard():
         ],[ InlineKeyboardButton(game.fd[6], callback_data='6'),
             InlineKeyboardButton(game.fd[7], callback_data='7'),
             InlineKeyboardButton(game.fd[8], callback_data='8'),]]
+
+def ttt_(update, c):
+    # reply_keyboard = reNewtttKeyboard() 
+    playing = True
+    reply_keyboard = reNewtttKeyboard()
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
+    update.message.reply_text(game.tttrules , reply_markup=reply_markup)
+    
+    while not game.finished():
+        query = update.callback_query
+        query.answer()
+        reply_keyboard = reNewtttKeyboard()
+        reply_markup = InlineKeyboardMarkup(reply_keyboard)              # Создаем Inline клавиатуру для ответа
+        query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
+        pos = int(query.data)
+        if int(pos) > 0 and int(pos) < 10:
+            pos = int(pos)-1
+            if game.possible_moves[pos]:
+                game.possible_moves[pos] = 0
+                game.move(pos)
+                if game.finished() or sum(game.possible_moves) == 0:
+                    playing = False
+                else:
+                    game.cplayer()
+
+
+
+        winner = game.finished()
+    print(winner)
+    if winner:
+        update.message.reply_text(game.win())
+    else:
+        update.message.reply_text(game.draw)
+    game.__init__()
+
+def ttt_w(update, c):
+    query = update.callback_query
+    query.answer()
+    reply_keyboard = reNewtttKeyboard()
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
+    query.edit_message_text(game.pmove(), reply_markup=reply_markup) # Пишем текущего игрока
